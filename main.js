@@ -2,10 +2,15 @@ const content = document.querySelector('.content')
 const refreshButton = document.querySelector('#refreshButton')
 
 let token = null
+let utilisateurCourant = null
 
 refreshButton.addEventListener('click', () => {
     run()
 })
+
+
+// async : faire tourner en même tmp plusieurs fonctions.
+// await : ça permet d'attendre la réponsse d'une fonction assynchrone.
 
 
 function run() {
@@ -14,10 +19,11 @@ function run() {
     } else {
         fetchMessages().then(messages => {
             renderMessages(messages)
+            deleteBoutton()
         })
-
     }
 }
+
 
 function renderLoginForm() {
     let loginTemplate = `<div class="login form-control">
@@ -33,12 +39,12 @@ function renderLoginForm() {
     loginButton.addEventListener('click', () => {
         login()
     })
-
-
 }
 
 function login() {
     const username = document.querySelector('#username')
+    utilisateurCourant = username.value
+    console.log(utilisateurCourant)
     const password = document.querySelector('#password')
 
     let body = {
@@ -69,29 +75,37 @@ function login() {
 }
 
 function generateMessage(message) {
-    let messageTemplate = `
-        <div class="row">
-            <hr>
-            <p><strong>${message.author.username} :</strong> ${message.content}</p>
-            <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
+
+    // si l'author du message est co on permet la modif des messages et delete.
+    // author == user
+
+    let contenuBoutton = ""
+    if (utilisateurCourant == message.author.username) {
+        contenuBoutton = `<div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
                 <div class="btn-group mr-2">
-                    <button type="button" class="btn btn-warning btn-sm" onclick="editMessage(${message.id})">
+                    <button type="button" class="btn btn-warning btn-sm" id="${message.id})">
                         <i class="bi bi-pencil"></i> Edit
                     </button>
                 </div>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteMessage(${message.id})">
+                    <button type="button" class="btn btn-danger btn-sm deleteBoutton" id="${message.id}">
                         <i class="bi bi-trash3"></i> Delete
                     </button>
                 </div>
-            </div>
+            </div>`
+    }
+
+
+    let messageTemplate = `
+        <div class="row">
+            <hr>
+            <p><strong>${message.author.username} :</strong> ${message.content}</p>
+            ${contenuBoutton}
             <hr>
         </div>`;
 
     return messageTemplate;
 }
-
-
 
 
 function renderMessages(tableauMessages) {
@@ -112,7 +126,6 @@ function renderMessages(tableauMessages) {
     postMessageButton.addEventListener('click', () => {
         sendMessage(postMessage.value)
     })
-
 }
 
 function render(pageContent) {
@@ -139,8 +152,6 @@ async function fetchMessages() {
             } else {
                 return data
             }
-
-
         })
 }
 
@@ -159,9 +170,9 @@ function sendMessage(messageToSend) {
 
     let params = {
         headers: {"Content-type": "application/json", "Authorization": `Bearer ${token}`},
-        method: "POST",
+        method: "POST", // corps
         body: JSON.stringify(body)
-    }
+    } // converti le json en string
 
 
     fetch('https://b1messenger.imatrythis.com/api/messages/new', params)
@@ -181,7 +192,32 @@ function sendMessage(messageToSend) {
         })
 }
 
+async function deleteMessage(idMessage) {
+    let params = {
+        headers: {"Content-type": "application/json", "Authorization": `Bearer ${token}`},
+        method: "DELETE",
+    }
 
+
+    return await fetch(`https://b1messenger.imatrythis.com/api/messages/delete/${idMessage}`, params)
+        .then(response => response.json())
+        .then(data => {
+            run()
+        })
+}
+
+function deleteBoutton() {
+    let deleteBouttons = document.querySelectorAll('.deleteBoutton')
+
+
+    deleteBouttons.forEach((boutton) => {
+        boutton.addEventListener('click', () => {
+            const idMessage = boutton.id
+            deleteMessage(idMessage)
+        })
+    })
+
+}
 
 
 run()
